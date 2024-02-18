@@ -1,0 +1,63 @@
+###############################################################################
+# function errecho
+#
+# This function outputs everything sent to it to STDERR (standard error output).
+###############################################################################
+function errecho() {
+  printf "%s\n" "$*" 1>&2
+}
+
+###############################################################################
+# function iam_list_users
+#
+# List the IAM users in the account.
+#
+# Returns:
+#       The list of users names
+#    And:
+#       0 - If the user already exists.
+#       1 - If the user doesn't exist.
+###############################################################################
+function iam_list_users() {
+  local option OPTARG # Required to use getopts command in a function.
+  local error_code
+  # bashsupport disable=BP5008
+  function usage() {
+    echo "function iam_list_users"
+    echo "Lists the AWS Identity and Access Management (IAM) user in the account."
+    echo ""
+  }
+
+  # Retrieve the calling parameters.
+  while getopts "h" option; do
+    case "${option}" in
+      h)
+        usage
+        return 0
+        ;;
+      \?)
+        echo "Invalid parameter"
+        usage
+        return 1
+        ;;
+    esac
+  done
+  export OPTIND=1
+
+  local response
+
+  response=$(aws iam list-users \
+    --output text \
+    --query "Users[].UserName")
+  error_code=${?}
+
+  if [[ $error_code -ne 0 ]]; then
+    aws_cli_error_log $error_code
+    errecho "ERROR: AWS reports list-users operation failed.$response"
+    return 1
+  fi
+
+  echo "$response"
+
+  return 0
+}
